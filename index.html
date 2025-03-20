@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product Trustworthiness Checker</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            background-color: #121212;
+            color: #ffffff;
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 20px;
+        }
+        input {
+            padding: 10px;
+            margin: 10px;
+            width: 250px;
+            background: #222;
+            color: #fff;
+            border: 1px solid #555;
+        }
+        button {
+            padding: 10px 20px;
+            background: #6200ea;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #3700b3;
+        }
+        .chart-container {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+        canvas {
+            max-width: 200px;
+            max-height: 200px;
+            margin: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h2>Product Trustworthiness Checker</h2>
+    <input type="text" id="product_id" placeholder="Enter Product ID">
+    <button onclick="checkProduct()">Check</button>
+    <div id="result"></div>
+    <div class="chart-container" id="charts"></div>
+
+    <script>
+        function checkProduct() {
+            const productId = document.getElementById("product_id").value;
+            fetch("http://127.0.0.1:5000/predict", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ product_id: productId, input: "test" })
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById("result").innerHTML = `
+                    <h3>Product ID: ${data.product_id}</h3>
+                    <h3>Trustworthiness Score: ${data.trustworthiness_score}</h3>
+                    <h3>Label: ${data.label}</h3>`;
+
+                const chartContainer = document.getElementById("charts");
+                chartContainer.innerHTML = "";
+                Object.entries(data.feature_ratings).forEach(([key, value], index) => {
+                    const canvasId = `chart${index}`;
+                    chartContainer.innerHTML += `<canvas id="${canvasId}"></canvas>`;
+                    setTimeout(() => createChart(canvasId, key, value), 100);
+                });
+            })
+            .catch(error => console.error("Error fetching results:", error));
+        }
+
+        function createChart(canvasId, label, value) {
+            const ctx = document.getElementById(canvasId).getContext("2d");
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: [label, "Remaining"],
+                    datasets: [{
+                        data: [value, 10 - value],
+                        backgroundColor: ["#79ea00", "#333"],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
